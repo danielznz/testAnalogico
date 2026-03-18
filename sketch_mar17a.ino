@@ -1,19 +1,18 @@
 #include "ibus.h"
 
-// Seus pinos (mantidos)
+// Analógicos
 #define RIGHT_VRX A0
 #define RIGHT_VRY A1
 #define LEFT_VRX A3
 #define LEFT_VRY A4
 
-// Define os analógicos usados (IMPORTANTE)
 byte analogPins[] = {RIGHT_VRX, RIGHT_VRY, LEFT_VRX, LEFT_VRY};
 
-// Sem botões
-byte digitalPins[] = {};
+// Digitais (D2 até D10)
+byte digitalPins[] = {2,3,4,5,6,7,8,9,10};
 byte digitalBitmappedPins[] = {};
 
-// Configuração
+// Config
 #define ANALOG_REFERENCE DEFAULT
 #define BAUD_RATE 115200
 #define UPDATE_INTERVAL 10
@@ -29,6 +28,11 @@ IBus ibus(NUM_CHANNELS);
 void setup() {
   analogReference(ANALOG_REFERENCE);
   Serial.begin(BAUD_RATE);
+
+  // Configura todos os digitais
+  for(int i = 0; i < DIGITAL_INPUTS_COUNT; i++) {
+    pinMode(digitalPins[i], INPUT_PULLUP);
+  }
 }
 
 void loop() {
@@ -36,10 +40,21 @@ void loop() {
 
   ibus.begin();
 
-  // Envia os 4 eixos
+  // Analógicos
   for(int i = 0; i < ANALOG_INPUTS_COUNT; i++) {
     int val = analogRead(analogPins[i]);
     ibus.write(1000 + (uint32_t)val * 1000 / 1023);
+  }
+
+  // Digitais como botões
+  for(int i = 0; i < DIGITAL_INPUTS_COUNT; i++) {
+    int val = digitalRead(digitalPins[i]);
+
+    // LOW = pressionado
+    if(val == LOW)
+      ibus.write(2000);
+    else
+      ibus.write(1000);
   }
 
   ibus.end();
