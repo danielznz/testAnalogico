@@ -1,26 +1,22 @@
 #include "ibus.h"
 
-// Seus pinos analógicos (mantidos)
+// Seus pinos (mantidos)
 #define RIGHT_VRX A0
 #define RIGHT_VRY A1
 #define LEFT_VRX A3
 #define LEFT_VRY A4
 
-// Pinos digitais para teste
-#define PIN5 5
-#define PIN6 6
-
-// Define os analógicos usados
+// Define os analógicos usados (IMPORTANTE)
 byte analogPins[] = {RIGHT_VRX, RIGHT_VRY, LEFT_VRX, LEFT_VRY};
 
-// Agora com digitais
-byte digitalPins[] = {PIN5, PIN6};
+// Sem botões
+byte digitalPins[] = {};
 byte digitalBitmappedPins[] = {};
 
 // Configuração
 #define ANALOG_REFERENCE DEFAULT
 #define BAUD_RATE 115200
-#define UPDATE_INTERVAL 200  // aumentei pra facilitar leitura no monitor
+#define UPDATE_INTERVAL 10
 
 #define ANALOG_INPUTS_COUNT sizeof(analogPins)
 #define DIGITAL_INPUTS_COUNT sizeof(digitalPins)
@@ -33,11 +29,6 @@ IBus ibus(NUM_CHANNELS);
 void setup() {
   analogReference(ANALOG_REFERENCE);
   Serial.begin(BAUD_RATE);
-
-  pinMode(PIN5, INPUT_PULLUP);
-  pinMode(PIN6, INPUT_PULLUP);
-
-  Serial.println("=== TESTE PINOS DIGITAIS ===");
 }
 
 void loop() {
@@ -45,33 +36,11 @@ void loop() {
 
   ibus.begin();
 
-  // Analógicos
+  // Envia os 4 eixos
   for(int i = 0; i < ANALOG_INPUTS_COUNT; i++) {
     int val = analogRead(analogPins[i]);
-    int mapped = 1000 + (uint32_t)val * 1000 / 1023;
-    ibus.write(mapped);
+    ibus.write(1000 + (uint32_t)val * 1000 / 1023);
   }
-
-  // Digitais + debug
-  Serial.print("PIN5: ");
-  int val5 = digitalRead(PIN5);
-  Serial.print(val5);
-  Serial.print(" | ");
-
-  Serial.print("PIN6: ");
-  int val6 = digitalRead(PIN6);
-  Serial.print(val6);
-  Serial.print(" | ");
-
-  // Envia para iBus
-  ibus.write(val5 == HIGH ? 2000 : 1000);
-  ibus.write(val6 == HIGH ? 2000 : 1000);
-
-  // Mostra o valor enviado
-  Serial.print("IBUS -> CH5: ");
-  Serial.print(val5 == HIGH ? 2000 : 1000);
-  Serial.print(" | CH6: ");
-  Serial.println(val6 == HIGH ? 2000 : 1000);
 
   ibus.end();
 
