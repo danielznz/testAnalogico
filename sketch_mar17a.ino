@@ -20,7 +20,7 @@ byte digitalBitmappedPins[] = {};
 // Configuração
 #define ANALOG_REFERENCE DEFAULT
 #define BAUD_RATE 115200
-#define UPDATE_INTERVAL 10
+#define UPDATE_INTERVAL 200  // aumentei pra facilitar leitura no monitor
 
 #define ANALOG_INPUTS_COUNT sizeof(analogPins)
 #define DIGITAL_INPUTS_COUNT sizeof(digitalPins)
@@ -34,9 +34,10 @@ void setup() {
   analogReference(ANALOG_REFERENCE);
   Serial.begin(BAUD_RATE);
 
-  // Configura os pinos digitais
   pinMode(PIN5, INPUT_PULLUP);
   pinMode(PIN6, INPUT_PULLUP);
+
+  Serial.println("=== TESTE PINOS DIGITAIS ===");
 }
 
 void loop() {
@@ -44,22 +45,33 @@ void loop() {
 
   ibus.begin();
 
-  // Envia os analógicos
+  // Analógicos
   for(int i = 0; i < ANALOG_INPUTS_COUNT; i++) {
     int val = analogRead(analogPins[i]);
-    ibus.write(1000 + (uint32_t)val * 1000 / 1023);
+    int mapped = 1000 + (uint32_t)val * 1000 / 1023;
+    ibus.write(mapped);
   }
 
-  // Envia os digitais (0 ou 1)
-  for(int i = 0; i < DIGITAL_INPUTS_COUNT; i++) {
-    int val = digitalRead(digitalPins[i]);
+  // Digitais + debug
+  Serial.print("PIN5: ");
+  int val5 = digitalRead(PIN5);
+  Serial.print(val5);
+  Serial.print(" | ");
 
-    // Converte para padrão iBus (1000 ou 2000)
-    if(val == HIGH)
-      ibus.write(2000);
-    else
-      ibus.write(1000);
-  }
+  Serial.print("PIN6: ");
+  int val6 = digitalRead(PIN6);
+  Serial.print(val6);
+  Serial.print(" | ");
+
+  // Envia para iBus
+  ibus.write(val5 == HIGH ? 2000 : 1000);
+  ibus.write(val6 == HIGH ? 2000 : 1000);
+
+  // Mostra o valor enviado
+  Serial.print("IBUS -> CH5: ");
+  Serial.print(val5 == HIGH ? 2000 : 1000);
+  Serial.print(" | CH6: ");
+  Serial.println(val6 == HIGH ? 2000 : 1000);
 
   ibus.end();
 
