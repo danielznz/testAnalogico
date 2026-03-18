@@ -63,3 +63,20 @@ void loop() {
   if(time < UPDATE_INTERVAL)
     delay(UPDATE_INTERVAL - time);
 }
+
+for(int i = 0; i < DIGITAL_INPUTS_COUNT; i++) {
+  int val = digitalRead(digitalPins[i]);
+
+  Serial.print("Pino D");
+  Serial.print(digitalPins[i]);
+  Serial.print(": ");
+
+  if(val == LOW)
+    Serial.print("PRESSIONADO");
+  else
+    Serial.print("SOLTO");
+
+  Serial.print(" | ");
+}
+
+Serial.println();
