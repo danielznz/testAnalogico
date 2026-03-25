@@ -1,80 +1,76 @@
 #include <Joystick.h>
 
-// --- Configuração dos pinos ---
-#define VRx_PIN  A0
-#define VRy_PIN  A1
-#define BTN_PIN  2
+#define RIGHT_VRX A0
+#define RIGHT_VRY A1
+#define LEFT_VRX  A3
+#define LEFT_VRY  A4
 
-// --- Cria o objeto Joystick ---
+#define D2_PIN  2
+#define D3_PIN  3
+#define D4_PIN  4
+#define D5_PIN  5
+#define D6_PIN  6
+#define D7_PIN  7
+#define D8_PIN  8
+#define D9_PIN  9
+#define D10_PIN 10
+#define D16_PIN 16 
+#define D14_PIN 14 
+
+// ===== ARRAYS =====
+byte analogPins[] = {RIGHT_VRX, RIGHT_VRY, LEFT_VRX, LEFT_VRY};
+
+byte digitalPins[] = {
+  D2_PIN, D3_PIN, D4_PIN, D5_PIN, D6_PIN,
+  D7_PIN, D8_PIN, D9_PIN, D10_PIN,
+  D16_PIN, D14_PIN
+};
+
+// ===== JOYSTICK CONFIG =====
 Joystick_ Joystick(
-  JOYSTICK_DEFAULT_REPORT_ID,   // ID padrão
-  JOYSTICK_TYPE_JOYSTICK,       // Tipo: Joystick
-  1,                            // Número de botões (1 = click do analógico)
-  0,                            // Número de Hat Switches
-  true,                         // Eixo X habilitado
-  true,                         // Eixo Y habilitado
-  false,                        // Eixo Z desabilitado
-  false,                        // Rotação X desabilitada
-  false,                        // Rotação Y desabilitada
-  false,                        // Rotação Z desabilitada
-  false,                        // Rudder desabilitado
-  false,                        // Throttle desabilitado
-  false,                        // Acelerador desabilitado
-  false,                        // Freio desabilitado
-  false                         // Direção desabilitada
+  JOYSTICK_DEFAULT_REPORT_ID,
+  JOYSTICK_TYPE_GAMEPAD,
+  11,     // número de botões
+  0,      // hat switch
+  true, true, true, true, false, false,
+  false, false, false, false, false
 );
 
-// --- Variáveis de estado do botão (para debounce) ---
-bool lastButtonState = HIGH;
-bool currentButtonState = HIGH;
-unsigned long lastDebounceTime = 0;
-const unsigned long DEBOUNCE_DELAY = 50; // ms
+// ===== CONFIG =====
+#define UPDATE_INTERVAL 10
 
 void setup() {
-  // Configura o pino do botão com pull-up interno
-  // (botão conecta o pino ao GND quando pressionado)
-  pinMode(BTN_PIN, INPUT_PULLUP);
+  // Configura botões
+  for(int i = 0; i < sizeof(digitalPins); i++) {
+    pinMode(digitalPins[i], INPUT_PULLUP);
+  }
 
-  // Define o range dos eixos (0 a 1023 = 10 bits do ADC)
+  Joystick.begin();
+
+  //AXIS DEFINE
   Joystick.setXAxisRange(0, 1023);
   Joystick.setYAxisRange(0, 1023);
-
-  // Inicia o Joystick (true = auto-envio de estado)
-  Joystick.begin(false);
+  Joystick.setRxAxisRange(0, 1023);
+  Joystick.setRyAxisRange(0, 1023);
 }
 
 void loop() {
-  // --- Leitura dos eixos analógicos ---
-  int xValue = analogRead(VRx_PIN);
-  int yValue = analogRead(VRy_PIN);
+  unsigned long start = millis();
 
-  Joystick.setXAxis(xValue);
-  Joystick.setYAxis(yValue);
+  //AXIS
+  Joystick.setXAxis(analogRead(RIGHT_VRX));
+  Joystick.setYAxis(analogRead(RIGHT_VRY));
+  Joystick.setRxAxis(analogRead(LEFT_VRX));
+  Joystick.setRyAxis(analogRead(LEFT_VRY));
 
-  // --- Leitura do botão com debounce ---
-  int reading = digitalRead(BTN_PIN);
+  //BUTTON
+  for(int i = 0; i < sizeof(digitalPins); i++) {
+    int val = digitalRead(digitalPins[i]);
 
-  if (reading != lastButtonState) {
-    lastDebounceTime = millis();
+    // LOW = pressionado
+    Joystick.setButton(i, val == LOW);
   }
 
-  if ((millis() - lastDebounceTime) > DEBOUNCE_DELAY) {
-    if (reading != currentButtonState) {
-      currentButtonState = reading;
-
-      // INPUT_PULLUP: LOW = pressionado, HIGH = solto
-      if (currentButtonState == LOW) {
-        Joystick.pressButton(0);   // Pressiona botão 0
-      } else {
-        Joystick.releaseButton(0); // Solta botão 0
-      }
-    }
-  }
-
-  lastButtonState = reading;
-
-  // Envia o estado atual para o PC
-  Joystick.sendState();
-
-  delay(10); // ~100Hz de atualização
+  // ===== UPDATE =====
+  delay(UPDATE_INTERVAL - min(UPDATE_INTERVAL, millis() - start));
 }
