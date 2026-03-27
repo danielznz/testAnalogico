@@ -1,10 +1,12 @@
 #include <Joystick.h>
 
+// ===== ANALÓGICOS =====
 #define RIGHT_VRX A0
 #define RIGHT_VRY A1
 #define LEFT_VRX  A3
-#define LEFT_VRY  A4
+#define LEFT_VRY  A2
 
+// ===== DIGITAIS =====
 #define D2_PIN  2
 #define D3_PIN  3
 #define D4_PIN  4
@@ -18,36 +20,44 @@
 #define D14_PIN 14 
 
 // ===== ARRAYS =====
-byte analogPins[] = {RIGHT_VRX, RIGHT_VRY, LEFT_VRX, LEFT_VRY};
-
 byte digitalPins[] = {
   D2_PIN, D3_PIN, D4_PIN, D5_PIN, D6_PIN,
   D7_PIN, D8_PIN, D9_PIN, D10_PIN,
   D16_PIN, D14_PIN
 };
 
-// ===== JOYSTICK CONFIG =====
+// ===== CONFIG JOYSTICK =====
 Joystick_ Joystick(
   JOYSTICK_DEFAULT_REPORT_ID,
   JOYSTICK_TYPE_GAMEPAD,
-  11,     // número de botões
-  0,      // hat switch
-  true, true, true, true, false, false,
-  false, false, false, false, false
+  11, // número de botões
+  0,
+true, true, false, true, true,
+false, false, false, false, false
 );
 
 // ===== CONFIG =====
 #define UPDATE_INTERVAL 10
+#define DEBOUNCE_DELAY 5
+
+// ===== FUNÇÃO DEBOUNCE =====
+bool readButton(int pin) {
+  if (digitalRead(pin) == LOW) {
+    delay(DEBOUNCE_DELAY);
+    if (digitalRead(pin) == LOW) return true;
+  }
+  return false;
+}
 
 void setup() {
-  // Configura botões
-  for(int i = 0; i < sizeof(digitalPins); i++) {
+  // Configura botões com pullup interno
+ for (int i = 0; i < sizeof(digitalPins) / sizeof(digitalPins[0]); i++) {
     pinMode(digitalPins[i], INPUT_PULLUP);
   }
 
   Joystick.begin();
 
-  //AXIS DEFINE
+  // Range dos eixos
   Joystick.setXAxisRange(0, 1023);
   Joystick.setYAxisRange(0, 1023);
   Joystick.setRxAxisRange(0, 1023);
@@ -57,20 +67,21 @@ void setup() {
 void loop() {
   unsigned long start = millis();
 
-  //AXIS
+  // ===== EIXOS =====
   Joystick.setXAxis(analogRead(RIGHT_VRX));
   Joystick.setYAxis(analogRead(RIGHT_VRY));
   Joystick.setRxAxis(analogRead(LEFT_VRX));
   Joystick.setRyAxis(analogRead(LEFT_VRY));
 
-  //BUTTON
-  for(int i = 0; i < sizeof(digitalPins); i++) {
-    int val = digitalRead(digitalPins[i]);
-
-    // LOW = pressionado
-    Joystick.setButton(i, val == LOW);
+  // ===== BOTÕES =====
+  for (int i = 0; i < sizeof(digitalPins); i++) {
+    bool pressed = readButton(digitalPins[i]);
+    Joystick.setButton(i, pressed);
   }
 
-  // ===== UPDATE =====
-  delay(UPDATE_INTERVAL - min(UPDATE_INTERVAL, millis() - start));
+  // ===== CONTROLE DE TEMPO =====
+  unsigned long elapsed = millis() - start;
+  if (elapsed < UPDATE_INTERVAL) {
+    delay(UPDATE_INTERVAL - elapsed);
+  }
 }
