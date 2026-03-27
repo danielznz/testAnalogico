@@ -19,6 +19,12 @@
 #define D16_PIN 16 
 #define D14_PIN 14 
 
+// ===== SLIDER =====
+int sliderValue = 0;
+#define SLIDER_MIN 0
+#define SLIDER_MAX 1023
+#define SLIDER_SPEED 8
+
 // ===== ARRAYS =====
 byte digitalPins[] = {
   D2_PIN, D3_PIN, D4_PIN, D5_PIN, D6_PIN,
@@ -30,10 +36,10 @@ byte digitalPins[] = {
 Joystick_ Joystick(
   JOYSTICK_DEFAULT_REPORT_ID,
   JOYSTICK_TYPE_GAMEPAD,
-  11, // número de botões
+  11,
   0,
-true, true, false, true, true,
-false, false, false, false, false
+  true, true, true, true, true, // Z ativado aqui
+  false, false, false, false, false
 );
 
 // ===== CONFIG =====
@@ -50,18 +56,17 @@ bool readButton(int pin) {
 }
 
 void setup() {
-  // Configura botões com pullup interno
- for (int i = 0; i < sizeof(digitalPins) / sizeof(digitalPins[0]); i++) {
+  for (int i = 0; i < sizeof(digitalPins) / sizeof(digitalPins[0]); i++) {
     pinMode(digitalPins[i], INPUT_PULLUP);
   }
 
   Joystick.begin();
 
-  // Range dos eixos
   Joystick.setXAxisRange(0, 1023);
   Joystick.setYAxisRange(0, 1023);
   Joystick.setRxAxisRange(0, 1023);
   Joystick.setRyAxisRange(0, 1023);
+  Joystick.setZAxisRange(0, 1023); // slider
 }
 
 void loop() {
@@ -73,8 +78,22 @@ void loop() {
   Joystick.setRxAxis(analogRead(LEFT_VRX));
   Joystick.setRyAxis(analogRead(LEFT_VRY));
 
+  // ===== SLIDER COM D10 E D16 =====
+  bool btnLeft  = readButton(D10_PIN);
+  bool btnRight = readButton(D16_PIN);
+
+  if (btnLeft && sliderValue > SLIDER_MIN) {
+    sliderValue -= SLIDER_SPEED;
+  }
+
+  if (btnRight && sliderValue < SLIDER_MAX) {
+    sliderValue += SLIDER_SPEED;
+  }
+
+  Joystick.setZAxis(sliderValue);
+
   // ===== BOTÕES =====
-  for (int i = 0; i < sizeof(digitalPins); i++) {
+  for (int i = 0; i < sizeof(digitalPins) / sizeof(digitalPins[0]); i++) {
     bool pressed = readButton(digitalPins[i]);
     Joystick.setButton(i, pressed);
   }
